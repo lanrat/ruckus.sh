@@ -49,34 +49,7 @@ function getAPInfo() {
 
     hostname=$(getHostnameFromIP $1)
 
-    echo "\"$name\" - $location ($1) [$macaddr] $hostname"
-}
-
-function getAPInterfaces() {
-    # ruckusWLANAdminStatus
-    # 1 = up
-    # 2 = down
-    results="$(snmpWalk $1 ".1.3.6.1.4.1.25053.1.1.6.1.1.1.1.1.12" | grep ' 1$')"
-
-    networkIDs="$(echo "${results}" | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
-
-    echo $networkIDs
-}
-
-
-function getAPInterfaceClients() {
-    # ruckusWLINKIIRemoteMAC
-    results="$(snmpWalk $1 ".1.3.6.1.4.1.25053.1.1.15.1.1.1.2.1.5.$2")"
-
-    if echo $results | grep -q "No Such Instance currently exists at this OID";
-    then
-        echo ""
-        return
-    fi
-
-    clientIDs="$(echo "${results}" | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
-
-    echo $clientIDs
+    printf "%-10s            [%s]  %-13s  %-10s     %s\n" $name  $macaddr $1 $location $hostname
 }
 
 function getWirelessInfo() {
@@ -90,9 +63,8 @@ function getWirelessInfo() {
     macaddr=$(snmpGet "-Ox $1" ".1.3.6.1.4.1.25053.1.1.6.1.1.1.1.1.2.$2")
     macaddr=$(cleanmac $macaddr)
 
-    echo -e "\t$ssid [$macaddr] (ch $channel)"
+    printf "%20s  [%s]                 ch%3s\n" $ssid $macaddr $channel
 }
-
 
 function getClientInfo() {
     # ruckusWLINKIIRemoteMAC
@@ -112,7 +84,33 @@ function getClientInfo() {
 
     hostname=$(getHostnameFromIP $ip)
 
-    echo -e "\t\t[$macaddr] (${signal}db) $ip (${up}s) $hostname"
+    printf "                      [%s]  %-13s %3sdb %7ss  %s\n" $macaddr $ip $signal $up $hostname
+}
+
+function getAPInterfaces() {
+    # ruckusWLANAdminStatus
+    # 1 = up
+    # 2 = down
+    results="$(snmpWalk $1 ".1.3.6.1.4.1.25053.1.1.6.1.1.1.1.1.12" | grep ' 1$')"
+
+    networkIDs="$(echo "${results}" | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
+
+    echo $networkIDs
+}
+
+function getAPInterfaceClients() {
+    # ruckusWLINKIIRemoteMAC
+    results="$(snmpWalk $1 ".1.3.6.1.4.1.25053.1.1.15.1.1.1.2.1.5.$2")"
+
+    if echo $results | grep -q "No Such Instance currently exists at this OID";
+    then
+        echo ""
+        return
+    fi
+
+    clientIDs="$(echo "${results}" | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
+
+    echo $clientIDs
 }
 
 function cleanmac() {
@@ -132,7 +130,6 @@ trim() {
     echo -n "$var"
 }
 
-
 function mac2dec() {
     mac=${1//:/ }
     for i in $mac
@@ -141,7 +138,6 @@ function mac2dec() {
     done
     echo ""
 }
-
 
 function getClientIPFromMAC() {
     # ruckusWLANStaIpaddr
