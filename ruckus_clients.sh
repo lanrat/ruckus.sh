@@ -47,7 +47,9 @@ function getAPInfo() {
     macaddr=$(snmpGet $1 ".1.3.6.1.4.1.25053.1.1.4.1.1.1.11.0")
     macaddr=$(cleanmac $macaddr)
 
-    echo "$name - $location ($1) [$macaddr]"
+    hostname=$(getHostnameFromIP $1)
+
+    echo "\"$name\" - $location ($1) [$macaddr] $hostname"
 }
 
 function getAPInterfaces() {
@@ -108,7 +110,9 @@ function getClientInfo() {
 
     ip=$(getClientIPFromMAC $1 $2 $macaddr)
 
-    echo -e "\t\t[$macaddr] (${signal}db) $ip (${up}s)"
+    hostname=$(getHostnameFromIP $ip)
+
+    echo -e "\t\t[$macaddr] (${signal}db) $ip (${up}s) $hostname"
 }
 
 function cleanmac() {
@@ -146,6 +150,25 @@ function getClientIPFromMAC() {
     ip="${ip%\"}" # remove end "
     ip="${ip#\"}" # remove leading "
     echo $ip
+}
+
+function getHostnameFromIP() {
+    if  [ -x "$(command -v dig)" ]; then
+        dig -x $1 +short
+        return
+    fi
+
+    if  [ -x "$(command -v nslookup)" ]; then
+        nslookup $1 | grep arpa | cut -d ' ' -f3
+        return
+    fi
+
+    if  [ -x "$(command -v host)" ]; then
+        host $1 | rev | cut -f1 -d ' ' | rev
+        return
+    fi
+
+    echo ""
 }
 
 
