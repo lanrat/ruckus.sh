@@ -39,9 +39,11 @@ function printAP() {
 function getAPInfo() {
     # ruckusDeviceName.0
     name=$(snmpGet $1 ".1.3.6.1.2.1.1.5.0")
+    name=$(removeQuotes ${name})
 
     # ruckusDeviceLocation.0;
     location=$(snmpGet $1 ".1.3.6.1.2.1.1.6.0")
+    location=$(removeQuotes ${location})
 
     # ruckusDeviceMacAddr.0;
     macaddr=$(snmpGet $1 ".1.3.6.1.4.1.25053.1.1.4.1.1.1.11.0")
@@ -58,6 +60,7 @@ function getWirelessInfo() {
 
     # ruckusWLANSSID
     ssid=$(snmpGet $1 ".1.3.6.1.4.1.25053.1.1.6.1.1.1.1.1.1.$2")
+    ssid=$(removeQuotes $ssid)
 
     # ruckusWLANBSSID
     macaddr=$(snmpGet "-Ox $1" ".1.3.6.1.4.1.25053.1.1.6.1.1.1.1.1.2.$2")
@@ -114,8 +117,7 @@ function getAPInterfaceClients() {
 }
 
 function cleanmac() {
-    t="${@%\"}" # remove end "
-    t="${t#\"}" # remove leading "
+    t="$(removeQuotes ${@})"
     t=$(trim $t) # remove spaces
     t=${t// /:} # replace space with :
     echo $t
@@ -143,9 +145,14 @@ function getClientIPFromMAC() {
     # ruckusWLANStaIpaddr
     decmac=$(mac2dec $3)
     ip=$(snmpGet $1 ".1.3.6.1.4.1.25053.1.1.6.1.1.2.2.1.16.$2.6$decmac")
-    ip="${ip%\"}" # remove end "
-    ip="${ip#\"}" # remove leading "
-    echo $ip
+    removeQuotes $ip
+}
+
+function removeQuotes() {
+    t="$@"
+    t="${t%\"}" # remove end "
+    t="${t#\"}" # remove leading "
+    echo "${t}"
 }
 
 function getHostnameFromIP() {
@@ -160,7 +167,7 @@ function getHostnameFromIP() {
     fi
 
     if  [ -x "$(command -v host)" ]; then
-        host $1 | rev | cut -f1 -d ' ' | rev
+        host $1 | rev | cut -f1 -d ' ' | rev | grep -v "NXDOMAIN"
         return
     fi
 
